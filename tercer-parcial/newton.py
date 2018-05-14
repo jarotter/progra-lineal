@@ -2,6 +2,26 @@ import numpy as np
 from scipy import linalg
 from scipy import sparse
 
+def recorte(v, dv):
+    """Encuentra el valor máximo 0 < alfa <= 1 tal que v+alfa*dv >=0
+
+    Parámetros:
+    ---------
+    v: numpy array
+        Vector v
+    dv: numpy array
+
+    Regresa
+    -------
+    alfa: double
+    """
+    try:
+        cota = np.min([-(v[i])/dv[i] for i in range(len(v)) if dv[i]<0])
+    except ValueError:
+        cota = np.inf
+    return np.min([cota,1])
+
+
 def newton_pi(A,b,c, tol=1e-9, is_sparse=False):
     """ Método de Newton con trayectoria central.
 
@@ -30,25 +50,6 @@ def newton_pi(A,b,c, tol=1e-9, is_sparse=False):
 
     """
 
-    def recorte(v, dv):
-        """Encuentra el valor máximo 0 < alfa <= 1 tal que v+alfa*dv >=0
-
-        Parámetros:
-        ---------
-        v: numpy array
-            Vector v
-        dv: numpy array
-
-        Regresa
-        -------
-        alfa: double
-        """
-        try:
-            cota = np.min([-(v[i])/dv[i] for i in range(len(v)) if dv[i]<0])
-        except ValueError:
-            cota = np.inf
-        return np.min([cota,1])
-
     def F(x, y, z, is_sparse=False):
         """Condiciones de Karush-Kuhn Tucker para problemas lineales.
 
@@ -61,16 +62,38 @@ def newton_pi(A,b,c, tol=1e-9, is_sparse=False):
         ATy = sparse.csc_matrix.dot(A.T,y) if is_sparse else np.dot(A.T,y)
         return(np.concatenate([Ax-b, ATy+z-c, x*z]))
 
-    x=np.ones(len(c))
-    y=np.ones(len(b))
-    z=np.ones(len(c))
+    n = len(c)
+    m = len(b)
+
+    if is_sparse:
+        x = sparse.linalg.lsqr(A,b)
+        x = x[0]
+        y = sparse.linalg.lsqr(A.T,c)
+        y = y[0]
+        z = c - sparse.csc_matrix.dot(A.T,y)
+    else:
+        x = linalg.lstsq(A,b)
+        x = x[0]
+        y = linalg.lstsq(A.T,c)
+        y = y[0]
+        z = c - np.dot(A.T,y)
+
+    min_x = np.min(x)
+    min_z = np.min(z)
+
+    x = x + np.max([0, -3/2*min_x])*np.ones(n)
+    z = z + np.max([0, -3/2*min_z])*np.ones(n)
+
+    if min_x == 0:
+        mu = 1/2*np.dot(x,z)
+        x = x + mu/np.dot(np.ones(m),z)*np.ones(n)
+        z = z + mu/np.dot(np.ones(n),x)*np.ones(m)
+
     k = 0
-    n = len(x)
-    m = len(y)
     sigma = 0.1
     const_ajuste = 999/1000
 
-    Fxyz = F(x,y,z,is_sparse=True) if is_sparse else F(x,y,z)
+    Fxyz = F(x,y,z,is_sparse=is_sparse)
     norm = linalg.norm(Fxyz, np.inf)
     while norm > tol and k<=200:
         mu = 1/n*np.dot(x,z)
@@ -79,6 +102,8 @@ def newton_pi(A,b,c, tol=1e-9, is_sparse=False):
             fila1 = sparse.hstack((A, np.zeros((m,m)), np.zeros((m,n))))
             fila2 = sparse.hstack((np.zeros((n,n)), A.T, np.eye(n)))
             KKT_matrix = sparse.vstack((fila1, fila2, fila3))
+            KKT_matrix = sparse.csc_matrix(KKT_matrix)
+
         else:
             fila1 = np.hstack((A, np.zeros((m,m)), np.zeros((m,n))))
             fila2 = np.hstack((np.zeros((n,n)), A.T, np.eye(n)))
