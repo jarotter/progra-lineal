@@ -1,6 +1,7 @@
  # -*- coding: utf-8 -*-
 import numpy as np
 from src import simplex_upto_p2 as simplex
+from src import printer
 
 #Actividad 1: 3.e)
 print('Actividad 1: 3.e)')
@@ -15,4 +16,4 @@ r = simplex.solve_max_leq(A,b,c)
 print(r)
 b = np.array([40, 40, 25])
 r = simplex.solve_max_leq(A,b,c)
-print(r)
+print(printer.print_resp(r))

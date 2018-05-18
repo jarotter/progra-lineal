@@ -1,6 +1,7 @@
  # -*- coding: utf-8 -*-
 import numpy as np
 from src import simplex_upto_p2 as simplex
+from src import printer
 
 #Actividad 1: 3.g)
 print('Actividad 1: 3.g)')
@@ -11,12 +12,12 @@ b3 = [15, 17, 19, 21, 23, 25]
 for x in b1 :
     b = np.array([x, 40, 20])
     r = simplex.solve_max_leq(A,b,c)
-    print(r)
+    print(printer.print_resp(r))
 for x in b1 :
     b = np.array([40, x, 20])
     r = simplex.solve_max_leq(A,b,c)
-    print(r)
+    print(printer.print_resp(r))
 for x in b3 :
     b = np.array([40, 40, x])
     r = simplex.solve_max_leq(A,b,c)
-    print(r)
+    print(printer.print_resp(r))

@@ -2,6 +2,7 @@
 import numpy as np
 from src import simplex_upto_p2 as simplex
 
+
 #Actividad 1: 3.j)
 print('Actividad 1: 3.j')
 A = np.array([[6,4], [8,4], [3,3]])
